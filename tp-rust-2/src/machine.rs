@@ -78,9 +78,29 @@ impl Machine {
                 moveif(regA, regB, regC);
                 Ok(false)
             },
-            2 => self.t_register[0] + 3,
-            3 => self.t_register[0] + 3,
-            4 => self.t_register[0] + 4,
+            2 => {
+                self.t_register[0] = self.t_register[0] + 3;
+
+                let rega : u8 = get_mem(inst + 1)?;
+                let regb : u8 = get_mem(inst + 2);
+
+                store(regA, regB);
+                Ok(false)
+            },
+            3 => {
+                self.t_register[0] = self.t_register[0] + 3;
+
+                let rega : u8 = get_mem(inst + 1)?;
+                let regb : u8 = get_mem(inst + 2);
+
+                load(regA, regB);
+                Ok(false)
+            },
+            4 => {
+                self.t_register[0]= self.t_register[0] + 4;
+
+    
+            },
             5 => self.t_register[0] + 4,
             6 => self.t_register[0] + 2,
             7 => {self.t_register[0] + 1;
@@ -89,7 +109,6 @@ impl Machine {
             8 => self.t_register[0] + 2,
         }
         self.t_register[0]= address_next;
-
         //match
 
         //unimplemented!()  // Implement me!
@@ -116,10 +135,26 @@ impl Machine {
     }
 
     // 4) LOADIMM
-    pub fn loadimm(&mut self, regA: &mut u8, H: &mut u8)
+    pub fn loadimm(&mut self, regA: &mut u8, L: &mut u8, H: &mut u8){
 
+    }
 
+    //5) SUB
+    pub fn sub(&mut self, regA: &mut u8, regB: &mut u8, regC: &mut u8){
 
+    }
+
+    //6) OUT
+    pub fn out(&mut self, regA: &mut u8){
+
+    }
+
+    //7) EXIT --> it's not necessary a function, it works only with Ok(True)
+
+    //8) OUT NUMBER
+    pub fn outnumber(&mut self, regA: &mut u8){
+
+    }
 
     /// Similar to [step_on](Machine::step_on).
     /// If output instructions are run, they print on standard output.
