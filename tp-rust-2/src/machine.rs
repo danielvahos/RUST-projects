@@ -68,7 +68,7 @@ impl Machine {
     pub fn step_on<T: Write>(&mut self, fd: &mut T) -> Result<bool, MachineError> {
 
         let address: usize = self.t_register[0] as usize; //it's register 0 because it's the number of instruction
-        let opcode = self.t_memory[address];
+        let opcode = self.get_mem(address)?;
         match opcode {
             1 => {
                 self.t_register[0] = self.t_register[0] + 4;
@@ -77,7 +77,7 @@ impl Machine {
                 let regB : u8 = self.get_mem(address + 2)?;
                 let regC : u8 = self.get_mem(address + 3)?;
 
-                self.moveif(regA, regB, regC);
+                self.moveif(regA, regB, regC)?;
                 Ok(false)
             },
             2 => {
@@ -86,7 +86,7 @@ impl Machine {
                 let regA : u8 = self.get_mem(address + 1)?;
                 let regB : u8 = self.get_mem(address + 2)?;
 
-                self.store(regA, regB);
+                self.store(regA, regB)?;
                 Ok(false)
             },
             3 => {
@@ -95,7 +95,7 @@ impl Machine {
                 let regA : u8 = self.get_mem(address + 1)?;
                 let regB : u8 = self.get_mem(address + 2)?;
 
-                self.load(regA, regB);
+                self.load(regA, regB)?;
                 Ok(false)
             },
             4 => {
@@ -105,7 +105,7 @@ impl Machine {
                 let L : u8 = self.get_mem(address + 2)?;
                 let H : u8 = self.get_mem(address + 3)?;
 
-                self.loadimm(regA, L, H);
+                self.loadimm(regA, L, H)?;
                 Ok(false)
             },
             5 =>{
@@ -115,7 +115,7 @@ impl Machine {
                 let regB : u8 = self.get_mem(address + 2)?;
                 let regC : u8 = self.get_mem(address + 3)?;
 
-                self.sub(regA, regB, regC);
+                self.sub(regA, regB, regC)?;
                 Ok(false)
             },
             6 =>{
@@ -146,42 +146,67 @@ impl Machine {
     //          INSTRUCTIONS
 
     // 1) MOVE IF INSTRUCTION
-    pub fn moveif(&mut self, regA: u8, regB: u8, regC: u8){
-        if self.t_register[regC as usize] != 0 {
-            self.t_register[regA as usize] = self.t_register[regB as usize];
+    pub fn moveif(&mut self, regA: u8, regB: u8, regC: u8)-> Result<(), MachineError>{
+        if self.get_reg(regC as usize)? != 0 {
+            self.set_reg(regA as usize, self.get_reg(regB as usize)?)
         }
-        else{}
+        else{
+            Ok(())
+        }
     }
 
     // 2) STORE
-    pub fn store(&mut self, regA: u8, regB: u8){
-        let value = self.t_register[regB as usize];
+    pub fn store(&mut self, regA: u8, regB: u8)-> Result<(), MachineError>{
+        let value = self.get_reg(regB as usize)?;
 
-        self.t_memory[self.t_register[regA as usize] as usize] = (value >> 24) as u8;
-        self.t_memory[self.t_register[(regA  + 1) as usize] as usize] = ((value >> 16) & 0xFF) as u8;
-        self.t_memory[self.t_register[(regA + 2) as usize] as usize] = ((value >> 8) & 0xFF) as u8;
-        self.t_memory[self.t_register[(regA + 3) as usize] as usize] = (value & 0xFF) as u8;
+        self.set_mem(self.get_reg(regA as usize)? as usize +3, (value >> 24) as u8)?;
+        //self.t_memory[self.get_reg(regA as usize) as usize]= (value >> 24) as u8;
+        //self.t_memory[self.t_register[regA as usize] as usize] = (value >> 24) as u8;
+
+        //CORRIGER
+
+        self.set_mem(self.get_reg(regA as usize)? as usize +2, ((value >> 16) & 0xFF) as u8)?;
+        //self.t_memory[self.t_register[(regA  + 1) as usize] as usize] = ((value >> 16) & 0xFF) as u8;
+
+        self.set_mem(self.get_reg(regA as usize)? as usize + 1, ((value >> 8) & 0xFF) as u8)?;
+        //self.t_memory[self.t_register[(regA + 2) as usize] as usize] = ((value >> 8) & 0xFF) as u8;
+
+        self.set_mem(self.get_reg(regA  as usize)? as usize + 0, (value & 0xFF) as u8)
+        //self.t_memory[self.t_register[(regA + 3) as usize] as usize] = (value & 0xFF) as u8;
     }
 
     // 3) LOAD
-    pub fn load(&mut self, regA: u8, regB: u8){
-        self.t_memory[self.t_register[regA as usize] as usize]= self.t_memory[regB as usize];
+    pub fn load(&mut self, regA: u8, regB: u8)-> Result<(), MachineError>{
+        //self.set_reg(regA as usize, self.get_mem(regB as usize))?;
+        //self.t_memory[self.t_register[regA as usize] as usize]= self.t_memory[regB as usize];
+
+//////////////////////////////////////////////////////////////////////
+        let v1 = self.get_mem(self.get_reg(regB as usize)? as usize + 3)?;
+        let v2 = self.get_mem(self.get_reg(regB as usize)? as usize + 2)?;
+        let v3 = self.get_mem(self.get_reg(regB as usize)? as usize + 1)?;
+        let v4 = self.get_mem(self.get_reg(regB as usize)? as usize + 0)?;
+
+        let v= (v1 as u32) <<24 | (v2 as u32) <<16 | (v3 as u32) <<8 | (v4 as u32);
+        self.set_reg(regA as usize, v)
+
     }
 
     // 4) LOADIMM
-    pub fn loadimm(&mut self, regA: u8, L: u8, H: u8){
-        self.t_register[regA as usize] = i32::from(
-            (((H as u16) << 8) | L as u16) as i16) as u32;
+    pub fn loadimm(&mut self, regA: u8, L: u8, H: u8) -> Result<(), MachineError>{
+        self.set_reg(regA as usize, i32::from(
+            (((H as u16) << 8) | L as u16) as i16) as u32)
     }
 
     //5) SUB
-    pub fn sub(&mut self, regA: u8, regB: u8, regC: u8){
-        self.t_register[regA  as usize] = self.t_register[regB as usize] - self.t_register[regC as usize];
+    pub fn sub(&mut self, regA: u8, regB: u8, regC: u8)-> Result<(), MachineError>{
+        self.set_reg(regA as usize, self.get_reg(regB as usize)?.wrapping_sub(self.get_reg(regC as usize)?))
+        //self.set_reg(regA as usize, self.t_register[regB as usize] - self.t_register[regC as usize])
+        //self.t_register[regA  as usize] = self.t_register[regB as usize] - self.t_register[regC as usize];
     }
 
     //6) OUT
     pub fn out<T: Write>(&mut self, regA: u8,fd: &mut T) -> Result<(), MachineError>{
-        let val = self.t_register[regA as usize] & 0xFF;
+        let val = self.get_reg((regA as usize))? & 0xFF;
         let unicode = val as u8 as char;
 
         let result = fd.write(format!("{}", unicode).as_bytes());
@@ -196,7 +221,7 @@ impl Machine {
 
     //8) OUT NUMBER
     pub fn outnumber<T: Write>(&mut self, regA: u8, fd: &mut T) -> Result<(), MachineError>{
-        let val = self.t_register[regA as usize] as i32;
+        let val = self.get_reg(regA as usize)? as i32;
 
         let result = fd.write(format!("{}", val).as_bytes());
 
@@ -223,18 +248,26 @@ impl Machine {
     /// Sets a register to the given value.
     pub fn set_reg(&mut self, reg: usize, value: u32) -> Result<(), MachineError> {
 
-        //C'EST POSSIBLE AVEC R0
-        if reg == 0{
-            return Err(MachineError:: RegNotAllowed);
+        match reg{
+            0..=NREGS=>{
+                        self.t_register[reg]=value;
+                        Ok(())
+            },
+            _ =>{
+                Err(MachineError::IncorrectRegRange)
+            }
         }
-        else if NREGS < reg{
+/*
+        if reg >= NREGS{
             return Err(MachineError::IncorrectRegRange);
         }
         else {
             self.t_register[reg]=value;
-                return Ok(println!("The value was set to the register {}", reg))
+                return Ok(())
+                //return Ok(println!("The value was set to the register {}", reg))
         }
         //unimplemented!()  // Implement me!
+*/
     }
 
     /// Reference onto the machine current memory.
@@ -243,12 +276,34 @@ impl Machine {
         return &self.t_memory; //return the memory current state
     }
     // fair une fonction pour lire memorie (&self.get_mem ory) va returner RESULT DE  u8 OU machine error
-    pub fn get_mem (&self, addr: usize)-> Result<u8, MachineError> {
-        if addr > MEMORY_SIZE{
+    pub fn get_mem(&self, addr: usize)-> Result<u8, MachineError> {
+        if addr >= MEMORY_SIZE{
             return Err(MachineError::IncorrectMemRange);
         }
         else{
             Ok(self.t_memory[addr])
         }
+    }
+    pub fn set_mem(&mut self, addr: usize, value: u8)-> Result<(), MachineError> {
+
+        if addr>= MEMORY_SIZE{
+            return Err(MachineError::IncorrectMemRange);
+        }
+        else {
+            self.t_memory[addr]=value;
+                return Ok(println!("The value was set to the memory {}", addr))
+        }
+        //unimplemented!()  // Implement me!
+    }
+
+    pub fn get_reg(&self, reg: usize)-> Result<u32, MachineError> {
+
+        if reg>= NREGS{
+            return Err(MachineError::IncorrectRegRange);
+        }
+        else {
+            Ok(self.t_register[reg])
+        }
+        //unimplemented!()  // Implement me!
     }
 }
