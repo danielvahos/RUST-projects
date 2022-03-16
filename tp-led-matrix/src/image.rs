@@ -1,4 +1,7 @@
 pub use gamma::*;
+use micromath::F32Ext;
+use std::ops::Mul;
+
 pub mod image {
 #[derive(Default, Copy, Clone)]
 //Create three unsigned bytes for primary colors
@@ -8,7 +11,7 @@ pub struct Color{
     pub b: u8,
 }
 
-//Implement three public constants
+ //Implement three public constants
 impl Color{
     pub const RED: Self = Color{
         r:0xff,
@@ -36,5 +39,26 @@ impl Color{
             b: gamma:: gamma_correct(self,b),
         }
     }
+
+    pub trait Mul<Rhs = Self> {
+        type Output;
+        fn mul(self, rhs: Rhs) -> Self::Output{
+            r = self.r * rhs.r;
+            g = self.g * rhs.g;
+            b = self.b * rhs.b;
+            Self::new(r,g,b)
+        }
+    }
+
+    pub trait Div<Rhs = Self> {
+        type Output;
+        fn div(self, rhs: Rhs) -> Self::Output{
+            r = self.r /rhs.r;
+            g = self.g / rhs.g;
+            b = self.b / rhs.b;
+            Self::new(r,g,b)
+        }
+    }
+
     }
 }
