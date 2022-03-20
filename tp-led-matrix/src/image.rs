@@ -5,7 +5,7 @@ use crate::gamma::gamma;
 use micromath::F32Ext;
 use core::ops::Mul;
 use core::ops::Div;
-//use core::ops::Index;
+use core::ops::Index;
 
 
 #[derive(Default, Copy, Clone)]
@@ -87,25 +87,20 @@ impl Color{
             return ima;
         }
     }
-    
 
-    pub trait Index<usize>{
+    impl Index<(usize, usize)> for Image{
         type Output =Color;
-        fn my_image(&self, row: usize, column: usize) -> Self;
-    }
-    impl Index<usize> for Image{
-        //type Output =Color;
-        fn my_image(&self, row: usize, column: usize) -> Self::Output{
-            match row{
-                0 => self.0[column + (8)*0],
-                1 => self.0[column + (8)*1],
-                2 => self.0[column + (8)*2],
-                3 => self.0[column + (8)*3],
-                4 => self.0[column + (8)*4],
-                5 => self.0[column + (8)*5],
-                6 => self.0[column + (8)*6],
-                7 => self.0[column + (8)*7],
-                _ => self.0[column + (8)*7],
+        fn index(&self, ind:(usize, usize)) -> &Self::Output{
+            match ind.0{
+                0 => &self.0[ind.1 + (8)*0],
+                1 => &self.0[ind.1 + (8)*1],
+                2 => &self.0[ind.1 + (8)*2],
+                3 => &self.0[ind.1 + (8)*3],
+                4 => &self.0[ind.1 + (8)*4],
+                5 => &self.0[ind.1 + (8)*5],
+                6 => &self.0[ind.1 + (8)*6],
+                7 => &self.0[ind.1 + (8)*7],
+                _ => &self.0[ind.1 + (8)*7],
             }
         }
     }
