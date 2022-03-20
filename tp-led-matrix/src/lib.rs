@@ -1,4 +1,6 @@
 #![no_std]
+pub mod image;
+pub mod gamma; 
 #[cfg(test)]
 mod tests {
     #[test]
