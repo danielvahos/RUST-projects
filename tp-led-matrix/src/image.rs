@@ -68,8 +68,8 @@ impl Color{
 
     impl Image{
         pub fn new_solid(color: Color) -> Self{
-
-            let mut ima: Image;
+            //Define the type and mutable of ima
+            let mut ima: Image= Image([Color::BLUE;64]);//Initialize it with a value, for example BLUE
             for i in 0..64{
                 ima.0[i]= color;
             }
