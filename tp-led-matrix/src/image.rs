@@ -47,9 +47,9 @@ impl Color{
     //pub trait Mul<Rhs = Self> {
         type Output= Color;
         fn mul(self, rhs: f32) -> Self::Output{
-            let r = ((self.r as f32)* rhs) as u8;
-            let g = ((self.g as f32)*rhs) as u8;
-            let b = ((self.b as f32) *rhs) as u8;
+            let r = ((self.r as f32)* rhs).round() as u8;
+            let g = ((self.g as f32)*rhs).round() as u8;
+            let b = ((self.b as f32) *rhs).round() as u8;
             Color{r,g,b}
         }
     }
@@ -57,9 +57,9 @@ impl Color{
     impl Div<f32> for Color{
         type Output= Color;
         fn div(self, rhs: f32) -> Self::Output{
-            let r = ((self.r as f32)/rhs) as u8;
-            let g = ((self.g as f32)/rhs) as u8;
-            let b = ((self.b as f32)/rhs) as u8;
+            let r = ((self.r as f32)/rhs).round() as u8;
+            let g = ((self.g as f32)/rhs).round() as u8;
+            let b = ((self.b as f32)/rhs).round() as u8;
             Color{r,g,b}
         }
     }
@@ -75,16 +75,18 @@ impl Color{
             }
             return ima;
         }
-        /*
-        pub trait Default {
-            fn default(color: RED) -> Self{
-                let mut ima: Image;
-                for i in 0..64{
-                    ima.0[i]= color;
-                }
-            }
-        }
+    }
 
+    pub trait Default{
+        fn default(&self) -> Self;
+    }
+    impl Default for Image {
+        fn default(&self) -> Self{
+            let ima: Image= Image([Color{r:0, g:0, b:0};64]);//define the values as 0, having BLACK as default
+            return ima;
+        }
+    }
+        /* 
         pub trait Index<Idx: Color> {
             type Output: Color;
             fn index(&self, index: Idx) -> &Self::Output{
@@ -95,5 +97,4 @@ impl Color{
             fn index_mut(&mut self, index: Idx) -> &mut Self::Output;
         }
         */
-    }
 }
