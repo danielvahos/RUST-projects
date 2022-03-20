@@ -7,6 +7,7 @@ use core::ops::Mul;
 use core::ops::Div;
 use core::ops::Index;
 use core::ops::IndexMut;
+use core::convert::AsRef;
 
 
 #[derive(Default, Copy, Clone)]
@@ -66,6 +67,7 @@ impl Color{
         }
     }
 
+    #[repr(transparent)]
     pub struct Image([Color; 64]);
 
     impl Image{
@@ -77,6 +79,50 @@ impl Color{
             }
             return ima;
         }
+
+        //Function for giving access to the content of one particular row
+        pub fn row(&self, row: usize) -> &[Color]{
+            match row{
+                0 => &self.0[0..8],
+                1 => &self.0[8..16],
+                2 => &self.0[16..24],
+                3 => &self.0[24..32],
+                4 => &self.0[32..40],
+                5 => &self.0[40..48],
+                6 => &self.0[48..56],
+                7 => &self.0[56..64],
+                _ => &self.0[56..64],
+
+            }
+
+        }
+
+
+        pub fn gradient(color: Color) -> Self{
+            //Define a (mutable) image for using it
+            let mut ima: Image= Image([Color{r:0, g:0, b:0};64]); //Initializa with random values
+            //Do a boucle for the rows and columns
+            for i in 0..8{
+                for j in 0..8{
+                    //Define the RHS with the formula for the gradient
+                    let rhs= (1+i*i + j) as f32;//(1+row*row + col)
+                    //According to the line, and column define a color for each pizel
+                    match i{
+                        0 => ima.0[j+8*0]= color.div(rhs),
+                        1 => ima.0[j+8*1]= color.div(rhs),
+                        2 => ima.0[j+8*2]= color.div(rhs),
+                        3 => ima.0[j+8*3]= color.div(rhs),
+                        4 => ima.0[j+8*4]= color.div(rhs),
+                        5 => ima.0[j+8*5]= color.div(rhs),
+                        6 => ima.0[j+8*6]= color.div(rhs),
+                        7 => ima.0[j+8*7]= color.div(rhs),
+                        _ => ima.0[j+8*7]= color.div(rhs),
+                    }
+                }
+            }
+            return ima;
+        }
+
     }
 
     pub trait Default{
@@ -121,6 +167,5 @@ impl Color{
         }
     }
     }
-
 
 }//close pub mod image
