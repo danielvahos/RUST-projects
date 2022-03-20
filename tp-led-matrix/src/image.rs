@@ -168,4 +168,20 @@ impl Color{
     }
     }
 
+    impl AsRef<[u8; 192]> for Image {
+
+        fn as_ref(&self) -> &[u8;192]{
+            //let mut table :[u8;192]= [0;192];
+            let ima: &Image;
+            let table = unsafe{core::mem::transmute::<&Image, &[u8;192]>(ima)};
+            for i in 0..64{
+                table[i+2*i]= self.0[i].r ;
+                table[(i+2*1)+1]= self.0[i].g ;
+                table[(i+2*1)+2]= self.0[i].b;
+            }
+            return &table;
+        }
+
+    }
+
 }//close pub mod image
