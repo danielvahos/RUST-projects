@@ -6,6 +6,7 @@ use micromath::F32Ext;
 use core::ops::Mul;
 use core::ops::Div;
 use core::ops::Index;
+use core::ops::IndexMut;
 
 
 #[derive(Default, Copy, Clone)]
@@ -104,10 +105,22 @@ impl Color{
             }
         }
     }
-
-/* 
-    pub trait IndexMut<Idx: ?Sized>: Index<Idx> {
-        fn index_mut(&mut self, index: Idx) -> &mut Self::Output;
+ 
+    impl IndexMut<(usize, usize)> for Image {
+        fn index_mut(&mut self, indm:(usize, usize)) -> &mut Self::Output{
+            match indm.0{
+                0 => &mut self.0[indm.1 + (8)*0],
+                1 => &mut self.0[indm.1 + (8)*1],
+                2 => &mut self.0[indm.1 + (8)*2],
+                3 => &mut self.0[indm.1 + (8)*3],
+                4 => &mut self.0[indm.1 + (8)*4],
+                5 => &mut self.0[indm.1 + (8)*5],
+                6 => &mut self.0[indm.1 + (8)*6],
+                7 => &mut self.0[indm.1 + (8)*7],
+                _ => &mut self.0[indm.1 + (8)*7],
+        }
     }
-*/
-}
+    }
+
+
+}//close pub mod image
