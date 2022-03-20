@@ -1,0 +1,1 @@
+/home/daniel/SE202/ULTIMA/machine/tp-led-matrix/target/debug/libtp_led_matrix.rlib: /home/daniel/SE202/ULTIMA/machine/tp-led-matrix/src/gamma.rs /home/daniel/SE202/ULTIMA/machine/tp-led-matrix/src/image.rs /home/daniel/SE202/ULTIMA/machine/tp-led-matrix/src/lib.rs
