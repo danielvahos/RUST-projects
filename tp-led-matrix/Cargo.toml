@@ -8,3 +8,8 @@ edition = "2021"
 [dependencies]
 cortex-m-rt = "0.7.1"
 micromath = "2.0.0"
+stm32l4 = "0.14.0"
+
+[[bin]]
+name = "tp-led-matrix"
+
