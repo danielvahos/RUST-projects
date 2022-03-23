@@ -1,6 +1,4 @@
 
-
-pub mod image {
 use crate::gamma::gamma;
 use micromath::F32Ext;
 use core::ops::Mul;
@@ -184,5 +182,3 @@ impl Color{
             unsafe{return core::mem::transmute::<&mut Image, &mut [u8;192]>(self);};
         }
     }
-
-}//close pub mod image
