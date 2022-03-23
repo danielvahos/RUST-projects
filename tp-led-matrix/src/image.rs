@@ -12,6 +12,7 @@ use core::convert::AsRef;
 
 #[derive(Default, Copy, Clone)]
 //Create three unsigned bytes for primary colors
+#[repr(C)]
 pub struct Color{
     pub r: u8,
     pub g: u8,
@@ -151,7 +152,7 @@ impl Color{
             }
         }
     }
- 
+
     impl IndexMut<(usize, usize)> for Image {
         fn index_mut(&mut self, indm:(usize, usize)) -> &mut Self::Output{
             match indm.0{
@@ -172,9 +173,15 @@ impl Color{
 
         fn as_ref(&self) -> &[u8;192]{
             //let mut table :[u8;192]= [0;192];
-            let ima=&self.0;
-            unsafe{return core::mem::transmute::<&[Color;64], &[u8;192]>(ima);};
-            //return table;
+            let ima=self;
+            unsafe{return core::mem::transmute::<&Image, &[u8;192]>(ima);};
+        }
+    }
+
+    impl AsMut<[u8; 192]> for Image{
+        fn as_mut(& mut self) -> &mut [u8;192]{
+            //let &mut ima=&self.0;
+            unsafe{return core::mem::transmute::<&mut Image, &mut [u8;192]>(self);};
         }
     }
 

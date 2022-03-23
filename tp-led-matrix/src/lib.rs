@@ -1,6 +1,9 @@
 #![no_std]
 pub mod image;
-pub mod gamma; 
+pub mod gamma;
+
+pub use image::{Color, Image}; //Reexporting types Color and Image
+
 #[cfg(test)]
 mod tests {
     #[test]
