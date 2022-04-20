@@ -1,7 +1,7 @@
 #![no_std]
 pub mod image;
 pub mod gamma;
-//pub mod matrix;
+pub mod matrix;
 
 pub use image::{Color, Image}; //Reexporting types Color and Image
 

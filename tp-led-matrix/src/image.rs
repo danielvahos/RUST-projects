@@ -18,25 +18,26 @@ pub struct Color{
 }
 
  //Implement three public constants
+
+pub const RED: Color = Color{
+    r:0xff,
+    g:0,
+    b:0,
+};
+
+pub const GREEN: Color = Color{
+    r:0,
+    g:0xff,
+    b:0,
+};
+
+pub const BLUE: Color = Color{
+    r:0,
+    g:0,
+    b:0xff,
+};
+
 impl Color{
-    pub const RED: Self = Color{
-        r:0xff,
-        g:0,
-        b:0,
-    };
-
-    pub const GREEN: Self = Color{
-        r:0,
-        g:0xff,
-        b:0,
-    };
-
-    pub const BLUE: Self = Color{
-        r:0,
-        g:0,
-        b:0xff,
-    };
-
     //Gamma correction
     pub fn gamma_correct(&self) -> Self{
         Color{
@@ -72,7 +73,7 @@ impl Color{
     impl Image{
         pub fn new_solid(color: Color) -> Self{
             //Define the type and mutable of ima
-            let mut ima: Image= Image([Color::BLUE;64]);//Initialize it with a value, for example BLUE
+            let mut ima: Image= Image([BLUE;64]);//Initialize it with a value, for example BLUE
             for i in 0..64{
                 ima.0[i]= color;
             }
