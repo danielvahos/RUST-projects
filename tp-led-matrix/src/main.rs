@@ -42,7 +42,7 @@ fn main() -> ! {
 
 
 
-//USARTS 
+//USARTS
 #[rtic::app(device = stm32l4xx_hal::pac, dispatchers = [USART2, USART3])]
 //#[rtic::app(device = stm32l4xx_hal::pac)]
 mod app {
@@ -53,12 +53,13 @@ mod app {
     type Instant = <MyMonotonic as rtic::Monotonic>::Instant;
 
     #[shared]
-    struct Shared {}
+    struct Shared {
+        newimage: Image
+    }
 
     #[local]
     struct Local {
-        matrix: Matrix,
-        newimage:Image
+        matrix: Matrix
     }
 
     #[init]
@@ -73,7 +74,6 @@ mod app {
         let mut rcc = dp.RCC.constrain();
         let mut flash = dp.FLASH.constrain();
         let mut pwr = dp.PWR.constrain(&mut rcc.apb1r1);
-    
 
         // Setup the clocks at 80MHz using HSI (by default since HSE/MSI are not configured).
         // The flash wait states will be configured accordingly.
@@ -107,12 +107,11 @@ mod app {
         //Build image to display
         let image_1:Image= Image::new_solid(Color{r:0,g:255,b:0});
         //let image_1:Image=image_1.default(); //one use default for the image
+        rotate_image::spawn(mono.now(), 0).unwrap();
         display::spawn(mono.now()).unwrap(); //display task  gets spawned after init() terminates
-        
         // Return the resources and the monotonic timer
-        (Shared {}, Local { matrix, newimage }, init::Monotonics(mono))
+        (Shared {newimage}, Local {matrix}, init::Monotonics(mono))
     }
-
 
 
     #[idle(local = [count:usize=0])]
@@ -134,8 +133,8 @@ mod app {
         }
     }
 
-    #[task(local = [matrix, newimage, next_line: usize = 0])]
-    fn display(cx: display::Context, at:Instant) {
+    #[task(local = [matrix, next_line: usize = 0], shared = [newimage], priority = 2)]
+    fn display(mut cx: display::Context, at:Instant) {
         // Display line next_line (cx.local.next_line) of
         // the image (cx.local.image) on the matrix (cx.local.matrix).
         // All those are mutable references.
@@ -151,15 +150,21 @@ mod app {
         }
         display::spawn_at(at, at+next).unwrap();
         */
+
+
+        cx.shared.newimage.lock(|newimage| {
+
         for i in 0..8{
-            cx.local.matrix.send_row(next_line,cx.local.newimage.row(next_line));
+            cx.local.matrix.send_row(next_line,newimage.row(next_line));
             next_line += 1;
             if next_line == 8{
                 next_line = 0;
             }
             }
+        });
         display::spawn_at(at, at + next).unwrap();
-        /* 
+        
+        /*
         *cx.local.next_line +=1;
         if *cx.local.next_line>7{
             *cx.local.next_line=0;
@@ -167,6 +172,29 @@ mod app {
         display::spawn_at(at, at+next).unwrap();
         */
     }
+
+
+    #[task(local = [], shared = [newimage], priority = 1)]
+    fn rotate_image(mut cx: rotate_image::Context, at:Instant, color_index:usize) {
+
+    let mut next_l = 0;
+    let mut next_index: usize = color_index + 1;
+    cx.shared.newimage.lock(|newimage| {
+        // Here you can use image, which is a &mut Image,
+        // to display the appropriate row
+        match color_index {
+            0 => *newimage = Image::gradient(RED),
+            1 => *newimage = Image::gradient(GREEN),
+            2 => *newimage = Image::gradient(BLUE),
+            _ => *newimage = Image::gradient(RED),
+        }
+    if next_index >= 3{
+        next_index = 0;
+    }
+    });
+    rotate_image::spawn_after((1.secs())/10, at, next_index).unwrap();
+    }
+
 
 
     /*
