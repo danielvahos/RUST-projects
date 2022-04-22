@@ -68,6 +68,7 @@ impl Color{
     }
 
     #[repr(transparent)]
+    #[derive(Copy, Clone)]
     pub struct Image([Color; 64]);
 
     impl Image{
