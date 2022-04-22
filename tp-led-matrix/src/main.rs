@@ -163,6 +163,10 @@ mod app {
         //Triple buffer
         let current_image:heapless::pool::Box<Image>;
         let rx_image:heapless::pool::Box<Image>;
+
+
+
+
         let next_image=None;
 
         let pool: Pool<Image> = Pool::new();
@@ -200,7 +204,9 @@ mod app {
         // the image (cx.local.image) on the matrix (cx.local.matrix).
         // All those are mutable references.
         let next=1.secs()/(6*80);
-        let mut next_line = 0;
+        //let mut next_line = 0;
+        let mut next_line= cx.local.next_line;
+        let matrix=cx.local.matrix;
         //let next_line: &mut usize=cx.local.next_line;
 
         // Increment next_line up to 7 and wraparound to 0
@@ -211,8 +217,24 @@ mod app {
         }
         display::spawn_at(at, at+next).unwrap();
         */
+        cx.shared.newimage.lock(|newimage| {
+            matrix.send_row(*next_line, newimage.row(*next_line));
+        });
 
 
+    
+        *next_line = (*next_line+1) %8;
+        if *next_line == 0 {
+            (cx.shared.newimage, cx.shared.next_image, cx.shared.pool).lock(|newimage,next_image,pool: &mut Pool<Image>| {
+                    if let Some(mut next_image) = next_image.take() {
+                        swap(&mut next_image, newimage);
+                        pool.free(next_image);
+                    };
+                },
+            );
+        }
+
+        /* 
         cx.shared.newimage.lock(|newimage| {
 
         for i in 0..8{
@@ -223,6 +245,7 @@ mod app {
             }
             }
         });
+        */
         display::spawn_at(at, at + next).unwrap();
         
         /*
@@ -235,10 +258,49 @@ mod app {
     }
 
     #[task(binds = USART1,
-        local = [usart1_rx, next_pos: usize = 0],
-        shared = [image, next_image])]
+        local = [usart1_rx, next_pos: usize = usize::MAX, current_image],
+        shared = [next_image, pool])]
     fn receive_byte(mut cx: receive_byte::Context)
-    {   
+    {
+        let next_pos:&mut usize =cx.local.next_pos;
+        let image =cx.local.current_image;
+
+        if let Ok(b) = cx.local.usart1_rx.read() {
+            if b == 0xFF{
+                *next_pos = 0;
+
+
+            }else if *next_pos != usize::MAX {
+                image.as_mut()[*next_pos] = b;
+
+
+                *next_pos += 1;
+            }
+
+
+
+
+             // If the received image is complete, make it available to
+            // the display task.
+            if *next_pos == 8 * 8 * 3 {
+                (cx.shared.next_image, cx.shared.pool).lock(|next_image, pool| {
+                    if let Some(next_image) = next_image.take() {
+                        pool.free(next_image);
+                    }
+
+                    let mut current_image = pool.alloc().unwrap().init(Image::default());
+                    swap(image, &mut current_image);
+                    // Replace the image content by the new one, for example
+                    // by swapping them, and reset next_pos
+                    *next_image = Some(current_image);
+                });
+
+                *next_pos = usize::MAX;
+            }
+        }
+
+
+        /* 
         cx.shared.next_image.lock(|image, next_image| {
         let next_image: &mut Image = cx.shared.next_image;
         let next_pos: &mut usize = cx.local.next_pos;
@@ -267,6 +329,7 @@ mod app {
             }
 
         }
+        */
     }
  
 
