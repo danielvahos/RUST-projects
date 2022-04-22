@@ -19,6 +19,8 @@ use tp_led_matrix::image::Default;
 use dwt_systick_monotonic::DwtSystick;
 use dwt_systick_monotonic::ExtU32;
 
+use stm32l4xx_hal::serial::{Config, Event, Rx, Serial};
+
 
 /*
 #[panic_handler]
@@ -59,7 +61,8 @@ mod app {
 
     #[local]
     struct Local {
-        matrix: Matrix
+        matrix: Matrix,
+        usart1_rx: Rx<stm32l4xx_hal::stm32::USART1>
     }
 
     #[init]
@@ -78,7 +81,7 @@ mod app {
         // Setup the clocks at 80MHz using HSI (by default since HSE/MSI are not configured).
         // The flash wait states will be configured accordingly.
         let clocks = rcc.cfgr.sysclk(80.MHz()).freeze(&mut flash.acr, &mut pwr);
-    
+
         //Create Image gradient Blue
         let newimage=Image::gradient(BLUE);
         let mut gpioa= dp.GPIOA.split(&mut rcc.ahb2);
@@ -91,6 +94,33 @@ mod app {
         let mut gpiob_otyper= gpiob.otyper;
         let mut gpioc_moder= gpioc.moder;
         let mut gpioc_otyper= gpioc.otyper;
+
+        let pb6_alter/* Pin<Alternate<PushPull, 7>, _>*/ =
+            gpiob
+                .pb6//Pin<Analog, L8, _, 6>
+                .into_alternate(&mut gpiob_moder, &mut gpiob_otyper, &mut gpiob.afr1);
+        let pb7_alter/* Pin<Alternate<PushPull, 7>, _>*/ =
+                gpiob
+                .pb6//Pin<Analog, L8, _, 7>
+                .into_alternate(&mut gpiob_moder, &mut gpiob_otyper, &mut gpiob.afr1);
+
+
+        //Set the baudrate
+        let bit_psec= stm32l4xx_hal::time::Bps(38400);
+        let baudr= stm32l4xx_hal::serial::Config::default().baudrate(bit_psec);
+
+        //Intialization of the serial port
+        let mut serialport =stm32l4xx_hal::serial::Serial::usart1(
+            dp.USART1,
+            (pb6_alter,pb7_alter),
+            baudr,
+            clocks,
+            &mut rcc.apb2,
+        );
+        serialport.listen(Event::Rxne);//to enable the "RX not empty" event - triigger interr when character received
+        let (_tx, usart1_rx)=serialport.split();//get the receiver part of the serial port
+
+
 
             //Create Matrix
         let mut matrix= Matrix::new(gpioa.pa2,gpioa.pa3,gpioa.pa4,gpioa.pa5,gpioa.pa6,gpioa.pa7,gpioa.pa15,
@@ -172,7 +202,6 @@ mod app {
         display::spawn_at(at, at+next).unwrap();
         */
     }
-
 
     #[task(local = [], shared = [newimage], priority = 1)]
     fn rotate_image(mut cx: rotate_image::Context, at:Instant, color_index:usize) {
