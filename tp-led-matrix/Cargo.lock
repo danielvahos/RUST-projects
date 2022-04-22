@@ -586,6 +586,7 @@ dependencies = [
  "defmt",
  "defmt-rtt",
  "dwt-systick-monotonic",
+ "heapless",
  "micromath",
  "panic-probe",
  "panic-rtt-target",

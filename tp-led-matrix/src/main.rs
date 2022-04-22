@@ -21,6 +21,14 @@ use dwt_systick_monotonic::ExtU32;
 
 use stm32l4xx_hal::serial::{Config, Event, Rx, Serial};
 
+//pub use binary_heap::BinaryHeap;	
+//pub use pool::singleton::arc::Arc;
+
+
+use heapless::pool::{Box, Node, Pool};
+
+use core::mem::swap;
+use core::mem::MaybeUninit;
 
 /*
 #[panic_handler]
@@ -56,13 +64,20 @@ mod app {
 
     #[shared]
     struct Shared {
-        newimage: Image
+        newimage: Image,
+        next_image: Option<Box<Image>>,
+        image: Image,
+        pool: Pool<Image>
+
     }
 
     #[local]
     struct Local {
         matrix: Matrix,
-        usart1_rx: Rx<stm32l4xx_hal::stm32::USART1>
+        usart1_rx: Rx<stm32l4xx_hal::stm32::USART1>,
+        //next_image: Image,
+        current_image:Box<Image>,
+        rx_image: Box<Image>
     }
 
     #[init]
@@ -98,11 +113,11 @@ mod app {
         let pb6_alter/* Pin<Alternate<PushPull, 7>, _>*/ =
             gpiob
                 .pb6//Pin<Analog, L8, _, 6>
-                .into_alternate(&mut gpiob_moder, &mut gpiob_otyper, &mut gpiob.afr1);
+                .into_alternate(&mut gpiob_moder, &mut gpiob_otyper, &mut gpiob.afrl);
         let pb7_alter/* Pin<Alternate<PushPull, 7>, _>*/ =
                 gpiob
-                .pb6//Pin<Analog, L8, _, 7>
-                .into_alternate(&mut gpiob_moder, &mut gpiob_otyper, &mut gpiob.afr1);
+                .pb7//Pin<Analog, L8, _, 7>
+                .into_alternate(&mut gpiob_moder, &mut gpiob_otyper, &mut gpiob.afrl);
 
 
         //Set the baudrate
@@ -135,12 +150,28 @@ mod app {
         let mut mono = DwtSystick::new(&mut cp.DCB, cp.DWT, cp.SYST, 80_000_000);
 
         //Build image to display
-        let image_1:Image= Image::new_solid(Color{r:0,g:255,b:0});
+        let image:Image= Image::new_solid(Color{r:0,g:0,b:0});
+        //let next_image:Image= Image::new_solid(Color{r:0,g:0,b:0});
         //let image_1:Image=image_1.default(); //one use default for the image
-        rotate_image::spawn(mono.now(), 0).unwrap();
-        display::spawn(mono.now()).unwrap(); //display task  gets spawned after init() terminates
+        //rotate_image::spawn(mono.now(), 0).unwrap();
+        display::spawn(mono.now()).unwrap(); //display task  gets spawned after init(ternunate)
         // Return the resources and the monotonic timer
-        (Shared {newimage}, Local {matrix}, init::Monotonics(mono))
+
+
+
+
+        //Triple buffer
+        let current_image:heapless::pool::Box<Image>;
+        let rx_image:heapless::pool::Box<Image>;
+        let next_image=None;
+
+        let pool: Pool<Image> = Pool::new();
+        unsafe {
+          static mut MEMORY: MaybeUninit<[Node<Image>; 3]> = MaybeUninit::uninit();
+          pool.grow_exact(&mut MEMORY);   // static mut access is unsafe
+        }
+      
+        (Shared {newimage, image, next_image, pool}, Local {usart1_rx, matrix, current_image, rx_image}, init::Monotonics(mono))
     }
 
 
@@ -203,6 +234,44 @@ mod app {
         */
     }
 
+    #[task(binds = USART1,
+        local = [usart1_rx, next_pos: usize = 0],
+        shared = [image, next_image])]
+    fn receive_byte(mut cx: receive_byte::Context)
+    {   
+        cx.shared.next_image.lock(|image, next_image| {
+        let next_image: &mut Image = cx.shared.next_image;
+        let next_pos: &mut usize = cx.local.next_pos;
+        if let Ok(b) = cx.local.usart1_rx.read() {
+            // Handle the incoming byte according to the SE203 protocol
+            // and update next_image
+            // Do not forget that next_image.as_mut() might be handy here!
+            if b==0xff || *next_pos==192 {
+                *next_pos=0;
+            }else{
+                let mut image_byte=next_image.as_mut();
+                image_byte[*next_pos]= b;
+                *next_pos+= 1;
+            }
+        }
+
+
+            // If the received image is complete, make it available to
+            // the display task.
+            if *next_pos == 8 * 8 * 3 {
+                cx.shared.image.lock(|image| {
+                    // Replace the image content by the new one, for example
+                    // by swapping them, and reset next_pos
+                    image.clone_from(next_image);
+                });
+            }
+
+        }
+    }
+ 
+
+    //Removing the rotate_image task
+    /* 
     #[task(local = [], shared = [newimage], priority = 1)]
     fn rotate_image(mut cx: rotate_image::Context, at:Instant, color_index:usize) {
 
@@ -224,7 +293,7 @@ mod app {
     rotate_image::spawn_after((1.secs())/10, at, next_index).unwrap();
     }
 
-
+    */
 
     /*
     #[entry]
