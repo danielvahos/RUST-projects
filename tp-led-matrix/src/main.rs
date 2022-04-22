@@ -161,19 +161,22 @@ mod app {
 
 
         //Triple buffer
-        let current_image:heapless::pool::Box<Image>;
-        let rx_image:heapless::pool::Box<Image>;
+        let pool: Pool<Image> = Pool::new();
+        unsafe {
+          static mut MEMORY: MaybeUninit<[Node<Image>; 3]> = MaybeUninit::uninit();
+          pool.grow_exact(&mut MEMORY);   // static mut access is unsafe
+        }
+        //let current_image:heapless::pool::Box<Image>;
+        //let rx_image:heapless::pool::Box<Image>;
+        let current_image = pool.alloc().unwrap().init(Image::default());
+        let rx_image = pool.alloc().unwrap().init(Image::default());
 
 
 
 
         let next_image=None;
 
-        let pool: Pool<Image> = Pool::new();
-        unsafe {
-          static mut MEMORY: MaybeUninit<[Node<Image>; 3]> = MaybeUninit::uninit();
-          pool.grow_exact(&mut MEMORY);   // static mut access is unsafe
-        }
+
       
         (Shared {newimage, image, next_image, pool}, Local {usart1_rx, matrix, current_image, rx_image}, init::Monotonics(mono))
     }

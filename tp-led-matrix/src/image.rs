@@ -127,10 +127,10 @@ impl Color{
     }
 
     pub trait Default{
-        fn default(&self) -> Self;
+        fn default() -> Self;
     }
     impl Default for Image {
-        fn default(&self) -> Self{
+        fn default() -> Self{
             let ima: Image= Image([Color{r:0, g:0, b:0};64]);//define the values as 0, having BLACK as default
             return ima;
         }
